@@ -1,24 +1,37 @@
-from random import randint
+apassword = '12022'
 
-secret_number = randint(1, 10) # ЭТО рандомное число в диапазоне от 1 до 10
-attemps = 3
+database = ['M', 'Az2', 'Chris', '324565', 'ADMIN', '12022'] # База данных пользователей
 
-print('Это программа угадай число. У вас 3 попытки, чтобы отгадать число')
+'''
+Блок функции администратора
+'''
 
-while attemps > 0:
+def login_in(apass):
+    while apass == apassword:
+        action = input('Выберите действие (1 - посмотреть базу данных, 0 - выйти из системы) -> ')
 
-    print('Попыток: ' + str(attemps))
-    attemps = attemps - 1
+        if action == '1':
+            print('Вот список всех зарегистрированых пользователей и их пароли:')
+            for i in database:
+                print(i)
+        if action == '0':
+            break
 
-    number = int(input('Введите число: '))
+    else:
+        print('Вы ввели неверный админ-пароль!')
+        return
+            
+'''
+Блок функции входа
+'''
+def login_as(cont):
+    if cont == '1':
+        print('К сожалению регистрация пользователей сейчас недоступна')
+        return
+    elif cont == '2':
+        print('Здравствуйте, администратор. Введите админ-пароль чтобы войти в систему')
+        upass = input()
+        login_in(upass)
 
-    if number > secret_number:
-        print('Слишком большое число')
-    if number < secret_number:
-        print('Слишком маленькое число')
-    if number == secret_number:
-        print('Молодец, угадал')
-        break
-    if attemps == 0:
-        print('Ты проиграл, настоящее число: ' + str(secret_number))
-
+cont = input('Выберите, как хотите войти (1 - пользователь, 2 - администратор) -> ')
+login_as(cont)
