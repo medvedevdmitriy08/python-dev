@@ -3,7 +3,7 @@ users = {
 }
 
 admins = {
-    'ADMIN': 'AzXc1202'
+    'admin': 'AzXc1202'
 }
 
 ban = {

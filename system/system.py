@@ -76,22 +76,27 @@ def login(username, password):
     # Добавить проверку ввода для имени пользователя
     if not username:
         print('Имя пользователя не может быть пустым!')
+        login_as()
         return
     if not username.isalnum():
         print('Имя пользователя может содержать только буквы и цифры!')
+        login_as()
         return
     
     # Добавить проверку ввода пароля
     if not password:
         print('Пароль не может быть пустым!')
+        login_as()
         return
     
     # Проверьте, действительны ли предоставленные имя пользователя и пароль
     if username not in users:
         print('Неверное имя пользователя или пароль!')
+        login_as()
         return
     if password != users[username]:
         print('Неверное имя пользователя или пароль!')
+        login_as()
         return
 
     if ban[username] == 'True':
@@ -113,22 +118,27 @@ def alogin(username, password):
     # Добавить проверку ввода для имени пользователя
     if not username:
         print('Имя пользователя не может быть пустым!')
+        login_as()
         return
     if not username.isalnum():
         print('Имя пользователя может содержать только буквы и цифры!')
+        login_as()
         return
     
     # Добавить проверку ввода пароля
     if not password:
         print('Пароль не может быть пустым!')
+        login_as()
         return
     
     # Проверьте, действительны ли предоставленные имя пользователя и пароль
     if username not in admins:
         print('Неверное имя пользователя или пароль!')
+        login_as()
         return
     if password != admins[username]:
         print('Неверное имя пользователя или пароль!')
+        login_as()
         return
     
     # Поприветствуйте пользователя и разрешите ему выполнить действия или выйти из системы
