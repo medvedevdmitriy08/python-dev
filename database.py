@@ -4,4 +4,8 @@ users = {
 
 admins = {
     'ADMIN': 'AzXc1202'
-    }
+}
+
+ban = {
+    'Test': 'False'
+}

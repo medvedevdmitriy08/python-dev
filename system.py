@@ -1,4 +1,4 @@
-from users import users, admins
+from database import users, admins, ban
 
 '''
 Начало
@@ -45,6 +45,7 @@ def register():
     
     # Добавьте нового пользователя в словарь пользователей
     users[username] = password
+    ban[username] = 'False'
     print('Вы успешно зарегистрировались!')
     login_as()
     return
@@ -92,7 +93,12 @@ def login(username, password):
     if password != users[username]:
         print('Неверное имя пользователя или пароль!')
         return
-    
+
+    if ban[username] == 'True':
+        print('Ваш аккаунт был заблокирован!')
+        login_as()
+        return
+
     print('Добро пожаловать,', username)
     action = input('Выберите действие (0 - выйти) -> ')
     if action == '0':
@@ -135,7 +141,7 @@ def alogin(username, password):
 '''
 # Поприветствуйте пользователя и разрешите ему выполнить действия или выйти из системы
 def a_session():
-    print('Выберите действие (1 - посмотреть БД пользователей, 2 - добавить пользователя, 3 - удалить пользователя, 4 - сменить пользователю пароль, 0 - выйти)')
+    print('Выберите действие (1 - посмотреть БД пользователей, 2 - добавить пользователя, 3 - удалить пользователя, 4 - сменить пользователю пароль, 5 - блокировка пользователей,\n 0 - выйти)')
     action = input('-> ')
     if action == '1':
         see_u_db()
@@ -154,8 +160,17 @@ def a_session():
         password = input('Введите новый пароль для этого пользователя: ')
         change_user_password(username, password)
         return
+    elif action == '5':
+        username = input('Введите имя пользователя, статус блокировки которого желаете изменить: ')
+        act = input('Выберите действие (1 - выдать блокировку, 0 - снять блокировку): ')
+        ban_user(username, act)
+        return
     elif action == '0':
         login_as()
+        return
+    else:
+        print('Выбрано неверное действие!')
+        welcome()
         return
 '''
 Действия админа
@@ -163,7 +178,10 @@ def a_session():
 def see_u_db():
     print('База данных пользователей')
     for user, passwd in users.items():
-        print('Имя: ' + user + ', ' 'пароль: ' + passwd)
+        print('Имя: ' + user + ', пароль: ' + passwd)
+    print('Список статуса блокировки пользователей')
+    for user, status in ban.items():
+        print('Имя: ' + user + ', статус: ' + status)
     a_session()
     return
 
@@ -175,6 +193,7 @@ def add_user(username, password):
         return
     # Добавляет нового пользователя в БД с уже установленым паролем
     users[username] = password
+    ban[username] = 'False'
     print('Пользователь {} успешно добавлен'.format(username))
     a_session()
     return
@@ -186,6 +205,7 @@ def delete_user(username):
         a_session()
         return
     del users[username]
+    del ban[username]
     print('Пользователь {} успешно удален'.format(username))
     a_session()
     return
@@ -200,5 +220,26 @@ def change_user_password(username, password):
     print('Пароль пользователя {} успешно изменен'.format(username))
     a_session()
     return
+
+def ban_user(username, act):
+    # Проверка на существование такого пользователя
+    if not username in users:
+        print('Такого пользователя несуществует либо в БД пользователей, либо в БД статусов!')
+        a_session()
+        return
+    if act == '1':
+        ban[username] = 'True'
+        print('Пользователю {} успешно выдана блокировка'.format(username))
+        a_session()
+        return
+    elif act == '0':
+        ban[username] = 'False'
+        print('Пользователю {} успешно снята блокировка'.format(username))
+        a_session()
+        return
+    else:
+        print('Выбрано неверное действие!')
+        a_session()
+        return
 
 welcome()
