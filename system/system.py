@@ -1,4 +1,4 @@
-from database import users, admins, ban
+from mysql.connector import connect, Error
 from getpass import getpass
 
 '''
@@ -10,7 +10,9 @@ def welcome():
         register()
         return
     elif action == '2':
-        login_as()
+        username = input('Введите имя пользователя: ')
+        password = getpass('Введите пароль: ')
+        login(username, password)
         return
     elif action == '0':
         return
@@ -21,7 +23,7 @@ def welcome():
 Регистрация
 '''
 def register():
-    # Предложите пользователю ввести имя пользователя и пароль
+    # Prompt the user to enter a username and password
     username = input('Введите имя пользователя: ')
     password = getpass('Введите пароль: ')
 
@@ -38,124 +40,114 @@ def register():
     if len(password) < 8:
         print("Пароль должен содержать минимум 8 символов!")
         return
-    # Проверьте, занято ли уже имя пользователя
-    if username in users:
-        print('Извините, имя пользователя уже занято. Пожалуйста, выберите другое.')
-        welcome()
-        return
-    
-    # Добавьте нового пользователя в словарь пользователей
-    users[username] = password
-    ban[username] = 'False'
-    print('Вы успешно зарегистрировались!')
-    login_as()
-    return
+
+    # Проверка не занято ли имя пользователя
+    try:
+        with connect(
+            host='localhost',
+            user='root',
+            password='root',
+            database='users'
+        ) as connection:
+            check_username = '''
+                SELECT * FROM `users` WHERE `Username`='{}'
+            '''.format(username)
+            with connection.cursor() as cursor:
+                cursor.execute(check_username)
+                if cursor.fetchone():
+                    print('Извините, имя пользователя уже занято, выберите другое.')
+                    welcome()
+                    return
+            # Добавляет нового пользователя в БД
+            add_user = '''
+                INSERT INTO `users` (`Username`, `Password`)
+                VALUES ('{}', '{}')
+            '''.format(username, password)
+            with connection.cursor() as cursor:
+                cursor.execute(add_user)
+            connection.commit()
+            print('Вы успешно зарегистрировались!')
+            welcome()
+            return
+    except Error as e:
+        print(e)
+    finally:
+        cursor.close()
+        connection.close()
+
 '''
-Войти как
-'''
-def login_as():
-    cont = input('Выберите, как вы хотите войти в систему (1 - пользователь, 2 - администратор, 0 - выход) -> ')
-    if cont == '1':
-        username = input('Введите имя пользователя: ')
-        password = getpass('Введите пароль: ')
-        login(username, password)
-        return
-    elif cont == '2':
-        username = input('Введите имя пользователя: ')
-        password = getpass('Введите пароль: ')
-        alogin(username, password)
-        return
-    elif cont == '0':
-        welcome()
-        return
-    else:
-        return
-'''
-Логин пользователя
+Логин
 '''
 def login(username, password):
-    # Добавить проверку ввода для имени пользователя
-    if not username:
-        print('Имя пользователя не может быть пустым!')
-        login_as()
-        return
-    if not username.isalnum():
-        print('Имя пользователя может содержать только буквы и цифры!')
-        login_as()
-        return
-    
-    # Добавить проверку ввода пароля
-    if not password:
-        print('Пароль не может быть пустым!')
-        login_as()
-        return
-    
-    # Проверьте, действительны ли предоставленные имя пользователя и пароль
-    if username not in users:
-        print('Неверное имя пользователя или пароль!')
-        login_as()
-        return
-    if password != users[username]:
-        print('Неверное имя пользователя или пароль!')
-        login_as()
-        return
+    try:
+        with connect(
+            host='localhost',
+            user='root',
+            password='root',
+            database='users'
+        ) as connection:
+            # Проверка на существование такого аккаунта
+            check = '''
+                SELECT * FROM `users` WHERE `Username`='{}' AND `Password`='{}'
+            '''.format(username, password)
+            with connection.cursor() as cursor:
+                cursor.execute(check)
+                if not cursor.fetchone():
+                    print('Неверное имя пользователя или пароль!')
+                    welcome()
+                    return
+            check_ban = '''
+                SELECT * FROM `users` WHERE `Username`='{}' AND `Ban`='True'
+            '''.format(username)
+            with connection.cursor() as cursor:
+                cursor.execute(check_ban)
+                if cursor.fetchone():
+                    print('Ваш аккаунт был заблокирован администрацией!')
+                    welcome()
+                    return
+            check_admin = '''
+                SELECT * FROM `users` WHERE `Username`='{}' AND `Admin`='True'
+            '''.format(username)
+            with connection.cursor() as cursor:
+                cursor.execute(check_admin)
+                if cursor.fetchone():
+                    print('Добро пожаловать, ', username)
+                    a_session()
+                    return
+    except Error as e:
+        print(e)
+    finally:
+        cursor.close()
+        connection.close()
 
-    if ban[username] == 'True':
-        print('Ваш аккаунт был заблокирован!')
-        login_as()
-        return
-
-    print('Добро пожаловать,', username)
-    action = input('Выберите действие (0 - выйти) -> ')
-    if action == '0':
-        login_as()
-        return
-    else:
-        return
-'''
-Логин админа
-'''
-def alogin(username, password):
-    # Добавить проверку ввода для имени пользователя
-    if not username:
-        print('Имя пользователя не может быть пустым!')
-        login_as()
-        return
-    if not username.isalnum():
-        print('Имя пользователя может содержать только буквы и цифры!')
-        login_as()
-        return
-    
-    # Добавить проверку ввода пароля
-    if not password:
-        print('Пароль не может быть пустым!')
-        login_as()
-        return
-    
-    # Проверьте, действительны ли предоставленные имя пользователя и пароль
-    if username not in admins:
-        print('Неверное имя пользователя или пароль!')
-        login_as()
-        return
-    if password != admins[username]:
-        print('Неверное имя пользователя или пароль!')
-        login_as()
-        return
-    
-    # Поприветствуйте пользователя и разрешите ему выполнить действия или выйти из системы
-    print('Добро пожаловать,', username)
-    a_session()
+    print('Добро пожаловать, ', username)
+    u_session()
     return
 
+'''
+Сессия пользователя
+'''
+def u_session():
+    action = input('Выберите действие (0 - выйти) -> ')
+    if action == '0':
+        welcome()
+        return
+    else:
+        welcome()
+        return
 '''
 Сессия админа
 '''
 # Поприветствуйте пользователя и разрешите ему выполнить действия или выйти из системы
 def a_session():
-    print('Выберите действие (1 - посмотреть БД пользователей, 2 - добавить пользователя, 3 - удалить пользователя, 4 - сменить пользователю пароль, 5 - блокировка пользователей,\n 0 - выйти)')
+    print('Выберите действие: 1 - посмотреть БД пользователей, 2 - добавить пользователя, 3 - удалить пользователя,' +  
+    '4 - изменить статус блокировки пользователя,\n5 - выдать/снять админ-права (ОСТОРОЖНО), \n 0 - выйти'
+    
+    )
     action = input('-> ')
     if action == '1':
-        see_u_db()
+        print('Вот база данных всех зарегистрированых пользователей:')
+        see_db()
         return
     elif action == '2':
         username = input('Придумайте имя: ')
@@ -163,21 +155,21 @@ def a_session():
         add_user(username, password)
         return
     elif action == '3':
-        username = input('Введите имя пользователя, которого желаете удалить: ')
-        delete_user(username)
+        id = input('Введите ID пользователя из базы данных: ')
+        del_user(id)
         return
     elif action == '4':
-        username = input('Введите пользователя, которому желаете изменить пароль: ')
-        password = input('Введите новый пароль для этого пользователя: ')
-        change_user_password(username, password)
+        id = input('Введите ID пользователя из базы данных: ')
+        a = input('Выберите действие (1 - выдать блокировку, 0 - снять блокировку): ')
+        ban(id, a)
         return
     elif action == '5':
-        username = input('Введите имя пользователя, статус блокировки которого желаете изменить: ')
-        act = input('Выберите действие (1 - выдать блокировку, 0 - снять блокировку): ')
-        ban_user(username, act)
+        id = input('Введите ID пользователя из базы данных: ')
+        a = input('Выберите действие (1 - выдать права, 0 - снять права): ')
+        makeadmin(id, a)
         return
     elif action == '0':
-        login_as()
+        welcome()
         return
     else:
         print('Выбрано неверное действие!')
@@ -186,71 +178,192 @@ def a_session():
 '''
 Действия админа
 '''
-def see_u_db():
-    print('База данных пользователей')
-    for user, passwd in users.items():
-        print('Имя: ' + user + ', пароль: ' + passwd)
-    print('Список статуса блокировки пользователей')
-    for user, status in ban.items():
-        print('Имя: ' + user + ', статус: ' + status)
-    a_session()
-    return
-
 def add_user(username, password):
-    # Проверка на существование такого пользователя
-    if username in users:
-        print('Такой пользователь уже зарегистрирован. Выберите другое имя!')
-        a_session()
-        return
-    # Добавляет нового пользователя в БД с уже установленым паролем
-    users[username] = password
-    ban[username] = 'False'
-    print('Пользователь {} успешно добавлен'.format(username))
+    try:
+        with connect(
+            host = 'localhost',
+            user = 'root',
+            password = 'root',
+            database = 'users',
+        ) as connection:
+            check_username = '''
+                SELECT * FROM `users` WHERE `Username`='{}'
+            '''.format(username)
+            with connection.cursor() as cursor:
+                cursor.execute(check_username)
+                if cursor.fetchone():
+                    print('Имя пользователя уже занято, выберите другое.')
+                    a_session()
+                    return
+            add_user = '''
+                INSERT INTO `users`.`users` (`Username`, `Password`)
+                VALUES ('{}', '{}')
+            '''.format(username, password)
+            with connection.cursor() as cursor:
+                cursor.execute(add_user)
+            connection.commit()
+    except Error as e:
+        print(e)
+    finally:
+        cursor.close()
+        connection.close()
+    
+    print('Вы успешно создали пользователя!')
     a_session()
     return
 
-def delete_user(username):
-    # Проверка на существование такого пользователя
-    if not username in users:
-        print('Такого пользователя не существует!')
-        a_session()
-        return
-    del users[username]
-    del ban[username]
-    print('Пользователь {} успешно удален'.format(username))
+def see_db():
+    try:
+        with connect(
+            host = 'localhost',
+            user = 'root',
+            password = 'root',
+            database = 'users',
+        ) as connection:
+            database = '''
+                SELECT * FROM `users`
+            '''
+            with connection.cursor() as cursor:
+                cursor.execute(database)
+                for row in cursor.fetchall():
+                    print(row)
+            connection.commit()
+    except Error as e:
+        print(e)
+    finally:
+        cursor.close()
+        connection.close()
+    
     a_session()
     return
 
-def change_user_password(username, password):
-    # Проверка на существование такого пользователя
-    if not username in users:
-        print('Такого пользователя не существует!')
-        a_session()
-        return
-    users[username] = password
-    print('Пароль пользователя {} успешно изменен'.format(username))
+def del_user(id):
+    try:
+        with connect(
+            host = 'localhost',
+            user = 'root',
+            password = 'root',
+            database = 'users',
+        ) as connection:
+            check_username = '''
+                SELECT * FROM `users` WHERE `ID`={}
+            '''.format(id)
+            with connection.cursor() as cursor:
+                cursor.execute(check_username)
+                if not cursor.fetchone():
+                    print('Такого аккаунта не существует!')
+                    a_session()
+                    return
+            del_user = '''
+                DELETE FROM `users`.`users` WHERE `ID` = {}
+            '''.format(id)
+            with connection.cursor() as cursor:
+                cursor.execute(del_user)
+            connection.commit()
+    except Error as e:
+        print(e)
+    finally:
+        cursor.close()
+        connection.close()
+    
+    print('Вы успешно удалили пользователя!')
     a_session()
     return
 
-def ban_user(username, act):
-    # Проверка на существование такого пользователя
-    if not username in users:
-        print('Такого пользователя несуществует либо в БД пользователей, либо в БД статусов!')
-        a_session()
-        return
-    if act == '1':
-        ban[username] = 'True'
-        print('Пользователю {} успешно выдана блокировка'.format(username))
-        a_session()
-        return
-    elif act == '0':
-        ban[username] = 'False'
-        print('Пользователю {} успешно снята блокировка'.format(username))
-        a_session()
-        return
-    else:
-        print('Выбрано неверное действие!')
-        a_session()
-        return
+def ban(id, a):
+    try:
+        with connect(
+            host = 'localhost',
+            user = 'root',
+            password = 'root',
+            database = 'users',
+        ) as connection:
+            check_username = '''
+                SELECT * FROM `users` WHERE `ID`={}
+            '''.format(id)
+            with connection.cursor() as cursor:
+                cursor.execute(check_username)
+                if not cursor.fetchone():
+                    print('Такого аккаунта не существует!')
+                    a_session()
+                    return
+
+            if a == '1':
+                ban_user = '''
+                    UPDATE `users`.`users` SET `Ban` = 'True' WHERE `ID` = {}
+                '''.format(id)
+                with connection.cursor() as cursor:
+                    cursor.execute(ban_user)
+                connection.commit()
+                print('Вы успешно збанили пользователя!')
+                a_session()
+                return
+            elif a == '0':
+                unban_user = '''
+                    UPDATE `users`.`users` SET `Ban` = 'False' WHERE `ID` = {}
+                '''.format(id)
+                with connection.cursor() as cursor:
+                    cursor.execute(unban_user)
+                connection.commit()
+                print('Вы успешно разбанили пользователя!')
+                a_session()
+                return
+            else:
+                print('Неверное действие')
+                a_session()
+                return
+    except Error as e:
+        print(e)
+    finally:
+        cursor.close()
+        connection.close()
+
+def makeadmin(id, a):
+    try:
+        with connect(
+            host = 'localhost',
+            user = 'root',
+            password = 'root',
+            database = 'users',
+        ) as connection:
+            check_username = '''
+                SELECT * FROM `users` WHERE `ID`={}
+            '''.format(id)
+            with connection.cursor() as cursor:
+                cursor.execute(check_username)
+                if not cursor.fetchone():
+                    print('Такого аккаунта не существует!')
+                    a_session()
+                    return
+
+            if a == '1':
+                ban_user = '''
+                    UPDATE `users`.`users` SET `Admin` = 'True' WHERE `ID` = {}
+                '''.format(id)
+                with connection.cursor() as cursor:
+                    cursor.execute(ban_user)
+                connection.commit()
+                print('Вы успешно сделали пользователя администратором!')
+                a_session()
+                return
+            elif a == '0':
+                unban_user = '''
+                    UPDATE `users`.`users` SET `Admin` = 'False' WHERE `ID` = {}
+                '''.format(id)
+                with connection.cursor() as cursor:
+                    cursor.execute(unban_user)
+                connection.commit()
+                print('Вы успешно сняли админ-права с пользователя!')
+                a_session()
+                return
+            else:
+                print('Неверное действие')
+                a_session()
+                return
+    except Error as e:
+        print(e)
+    finally:
+        cursor.close()
+        connection.close()
 
 welcome()
