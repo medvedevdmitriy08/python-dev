@@ -1,4 +1,5 @@
 from database import users, admins, ban
+from getpass import getpass
 
 '''
 Начало
@@ -22,7 +23,7 @@ def welcome():
 def register():
     # Предложите пользователю ввести имя пользователя и пароль
     username = input('Введите имя пользователя: ')
-    password = input('Введите пароль: ')
+    password = getpass('Введите пароль: ')
 
     # Проверка введёных данных
     if not username:
@@ -56,12 +57,12 @@ def login_as():
     cont = input('Выберите, как вы хотите войти в систему (1 - пользователь, 2 - администратор, 0 - выход) -> ')
     if cont == '1':
         username = input('Введите имя пользователя: ')
-        password = input('Введите пароль: ')
+        password = getpass('Введите пароль: ')
         login(username, password)
         return
     elif cont == '2':
         username = input('Введите имя пользователя: ')
-        password = input('Введите пароль: ')
+        password = getpass('Введите пароль: ')
         alogin(username, password)
         return
     elif cont == '0':
